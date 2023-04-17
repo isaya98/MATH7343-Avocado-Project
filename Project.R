@@ -7,6 +7,7 @@ library(GGally)
 library (emmeans)
 library(ggplot2)
 library(Hmisc)
+library(pROC)
 
 # Read in the dataset
 avocado <- read.csv(file.choose(), header = TRUE)
@@ -146,8 +147,8 @@ ggplot(avocado, aes(x = Total.Bags, y = AveragePrice)) +
 
 
 #Linear model to compare avg price and total volume
-lm_model <- lm(AveragePrice ~ Total.Volume, data = avocado)
-summary(lm_model)
+lm_model2 <- lm(AveragePrice ~ Total.Volume, data = avocado)
+summary(lm_model2)
 
 ggplot(avocado, aes(x = Total.Volume, y = AveragePrice)) +
   geom_point() +
@@ -177,6 +178,33 @@ model <- lm(AveragePrice ~ type*region*year, data = avocado)
 
 # Test for overall significance of the model
 summary(model)
+
+# Create the residual plot
+ggplot(model, aes(.fitted, .resid)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  xlab("Fitted Values") +
+  ylab("Residuals") +
+  ggtitle("Residual Plot")
+
+
+# Create a scatter plot of predicted vs. actual values
+ggplot(model, aes(.fitted, AveragePrice)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  xlab("Predicted Values") +
+  ylab("Actual Values") +
+  ggtitle("Predicted vs. Actual Values")
+
+# Create an interaction plot of type by year
+ggplot(model, aes(x = year, y = AveragePrice, color = type)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~type) +
+  xlab("Year") +
+  ylab("Average Price") +
+  ggtitle("Interaction Plot of Type by Year")
+
 
 # Test for significance of individual coefficients
 summary(model)$coefficients
@@ -236,5 +264,14 @@ y <- data["HighPrice"]
 model <- glm(HighPrice ~ X, family = binomial(link = "logit"), data = avocado)
 summary (model)
 
+roc_all <- roc(avocado$HighPrice, predict(model, type = "response"))
+plot(roc_all, main = "ROC Curve for Logistic Regression Model (All Features)")
+
+
 model <- glm(HighPrice ~ year, family = binomial(link = "logit"), data = avocado)
 summary (model)
+
+
+# ROC curve of the logistic regression model using only year
+roc <- roc(avocado$HighPrice, predict(model, type = "response", newdata = avocado))
+plot(roc, main = "ROC Curve for Logistic Regression Model (Year Only)")
